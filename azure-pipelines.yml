@@ -1,0 +1,30 @@
+trigger:
+  - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+  - script: docker build -t $(Build.Repository.Uri) .
+    displayName: 'Build Docker image'
+
+  - uses: azure/docker-login@v1
+    with:
+      login-server: 'testappimagestorage.azurecr.io'
+      username: ${{ secrets.REGISTRY_USERNAME }}
+      password: ${{ secrets.REGISTRY_PASSWORD }}
+
+  - task: Docker@2
+    displayName: 'Push Docker image to Azure Container Registry'
+    inputs:
+      containerRegistry: 'YourAzureContainerRegistryConnection'
+      repository: 'yourimagename'
+      command: 'push'
+      tags: '$(Build.BuildId)'
+
+  - task: AzureWebAppContainer@1
+    displayName: 'Deploy to Azure App Service'
+    inputs:
+      azureSubscription: 'YourAzureServiceConnection'
+      appName: 'yourappname'
+      containers: 'yourregistry.azurecr.io/yourimagename:$(Build.BuildId)'
